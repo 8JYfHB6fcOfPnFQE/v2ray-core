@@ -38,7 +38,15 @@ func (c *cmdarg) Set(value string) error {
 func init() {
 	flag.Var(&configFiles, "config", "Config file for V2Ray. Multiple assign is accepted (only json). Latter ones overrides the former ones.")
 	flag.Var(&configFiles, "c", "Short alias of -config")
-	flag.StringVar(&configDir, "confdir", "", "A directory with multiple json config")
+	// Default confdir to ~/.v2ray for personal convenience
+	defaultConfDir := ""
+	if home, err := os.UserHomeDir(); err == nil {
+		defaultConfDir = filepath.Join(home, ".v2ray")
+		if _, err := os.Stat(defaultConfDir); os.IsNotExist(err) {
+			defaultConfDir = ""
+		}
+	}
+	flag.StringVar(&configDir, "confdir", defaultConfDir, "A directory with multiple json config")
 }
 
 func main() {
@@ -124,24 +132,4 @@ func parseFlags() (*options, error) {
 			}
 			name := entry.Name()
 			if strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml") {
-				opts.configFiles = append(opts.configFiles, filepath.Join(configDir, name))
-			}
-		}
-	}
-
-	opts.configFiles = append(opts.configFiles, configFiles...)
-
-	if len(opts.configFiles) == 0 {
-		// Fallback to default config path
-		if runtime.GOOS == "windows" {
-			opts.configFiles = []string{"config.json"}
-		} else {
-			opts.configFiles = []string{"/etc/v2ray/config.json"}
-		}
-	}
-
-	// Suppress unused import warning for serial
-	_ = serial.DecodeJSONConfig
-
-	return opts, nil
-}
+				opts.configFiles = append
