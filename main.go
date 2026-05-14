@@ -38,12 +38,21 @@ func (c *cmdarg) Set(value string) error {
 func init() {
 	flag.Var(&configFiles, "config", "Config file for V2Ray. Multiple assign is accepted (only json). Latter ones overrides the former ones.")
 	flag.Var(&configFiles, "c", "Short alias of -config")
-	// Default confdir to ~/.v2ray for personal convenience
+	// Default confdir to ~/.v2ray for personal convenience.
+	// Also check XDG_CONFIG_HOME/v2ray as an alternative location.
 	defaultConfDir := ""
-	if home, err := os.UserHomeDir(); err == nil {
-		defaultConfDir = filepath.Join(home, ".v2ray")
-		if _, err := os.Stat(defaultConfDir); os.IsNotExist(err) {
-			defaultConfDir = ""
+	if xdgConfig := os.Getenv("XDG_CONFIG_HOME"); xdgConfig != "" {
+		xdgV2ray := filepath.Join(xdgConfig, "v2ray")
+		if _, err := os.Stat(xdgV2ray); err == nil {
+			defaultConfDir = xdgV2ray
+		}
+	}
+	if defaultConfDir == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			defaultConfDir = filepath.Join(home, ".v2ray")
+			if _, err := os.Stat(defaultConfDir); os.IsNotExist(err) {
+				defaultConfDir = ""
+			}
 		}
 	}
 	flag.StringVar(&configDir, "confdir", defaultConfDir, "A directory with multiple json config")
@@ -124,12 +133,4 @@ func parseFlags() (*options, error) {
 	if configDir != "" {
 		dirEntries, err := os.ReadDir(configDir)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read config directory: %s", err)
-		}
-		for _, entry := range dirEntries {
-			if entry.IsDir() {
-				continue
-			}
-			name := entry.Name()
-			if strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".yaml") || strings.HasSuffix(name, ".yml") {
-				opts.configFiles = append
+			return nil, fmt.Errorf("failed to 
