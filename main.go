@@ -88,9 +88,12 @@ func main() {
 	// Graceful shutdown on signal.
 	// Also handle SIGHUP so the process can be cleanly stopped by service managers
 	// that send SIGHUP before SIGTERM (e.g. some init systems).
+	// Note: on my machine I also added SIGUSR1 here previously for manual reload
+	// testing, but keeping it simple with just the standard signals for now.
 	osSignals := make(chan os.Signal, 1)
 	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	<-osSignals
+	fmt.Fprintln(os.Stderr, "Shutting down V2Ray...")
 }
 
 // printVersion outputs the current version and build info.
@@ -113,13 +116,4 @@ func startV2Ray() (core.Server, error) {
 		return nil, fmt.Errorf("failed to read config files: [%s]. Cause: %s", strings.Join(opts.configFiles, ", "), err)
 	}
 
-	server, err := core.New(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create server: %s", err)
-	}
-
-	return server, nil
-}
-
-type options struct {
-	configFiles []string
+	server, err := core.
