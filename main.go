@@ -94,6 +94,10 @@ func main() {
 	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	<-osSignals
 	fmt.Fprintln(os.Stderr, "Shutting down V2Ray...")
+
+	// Print runtime info on shutdown for easier debugging on my machines.
+	fmt.Fprintf(os.Stderr, "Runtime: %s/%s, goroutines at shutdown: %d\n",
+		runtime.GOOS, runtime.GOARCH, runtime.NumGoroutine())
 }
 
 // printVersion outputs the current version and build info.
@@ -111,9 +115,4 @@ func startV2Ray() (core.Server, error) {
 		return nil, err
 	}
 
-	config, err := core.LoadConfig(opts.format, opts.configFiles[0], opts.configFiles)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config files: [%s]. Cause: %s", strings.Join(opts.configFiles, ", "), err)
-	}
-
-	server, err := core.
+	config, err := core.LoadConfig(opts.
