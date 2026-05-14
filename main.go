@@ -85,9 +85,11 @@ func main() {
 	}
 	defer server.Close()
 
-	// Graceful shutdown on signal
+	// Graceful shutdown on signal.
+	// Also handle SIGHUP so the process can be cleanly stopped by service managers
+	// that send SIGHUP before SIGTERM (e.g. some init systems).
 	osSignals := make(chan os.Signal, 1)
-	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(osSignals, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	<-osSignals
 }
 
@@ -121,16 +123,3 @@ func startV2Ray() (core.Server, error) {
 
 type options struct {
 	configFiles []string
-	format      string
-}
-
-// parseFlags resolves config file paths from flags and config directory.
-func parseFlags() (*options, error) {
-	opts := &options{
-		format: *format,
-	}
-
-	if configDir != "" {
-		dirEntries, err := os.ReadDir(configDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to 
