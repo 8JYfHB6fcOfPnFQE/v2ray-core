@@ -109,13 +109,40 @@ func printVersion() {
 }
 
 // startV2Ray loads configuration and initializes the V2Ray server instance.
+// It reads from configFiles and configDir, merging multiple JSON configs if provided.
 func startV2Ray() (core.Server, error) {
-	configFiles := getConfigFilePath()
+	configFilesList := getConfigFilePath()
 
-	config, err := serial.LoadJSONConfig(configFiles)
+	config, err := serial.LoadJSONConfig(configFilesList)
 	if err != nil {
 		return nil, err
 	}
 
 	return core.New(config)
+}
+
+// getConfigFilePath collects all config file paths from flags and confdir.
+func getConfigFilePath() cmdarg {
+	if configDir != "" {
+		if dirEntries, err := os.ReadDir(configDir); err == nil {
+			for _, entry := range dirEntries {
+				if entry.IsDir() {
+					continue
+				}
+				name := entry.Name()
+				// Only load .json files from confdir to avoid accidentally
+				// picking up editor swap files or other non-config files.
+				if strings.HasSuffix(name, ".json") {
+					configFiles = append(configFiles, filepath.Join(configDir, name))
+				}
+			}
+		}
+	}
+
+	if len(configFiles) == 0 {
+		// Fall back to stdin if no config files were specified.
+		configFiles = append(configFiles, "stdin:")
+	}
+
+	return configFiles
 }
