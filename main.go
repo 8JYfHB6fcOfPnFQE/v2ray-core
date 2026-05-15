@@ -108,11 +108,36 @@ func printVersion() {
 	}
 }
 
-// startV2Ray initializes and returns a V2Ray server instance.
+// startV2Ray builds and returns a V2Ray server instance from the provided
+// config files and/or config directory. Config files specified via -config/-c
+// flags are loaded first, followed by any *.json files found in -confdir.
+// If neither is provided, it falls back to reading from stdin.
 func startV2Ray() (core.Server, error) {
-	opts, err := parseFlags()
+	configFiles := getConfigFilePath()
+
+	config, err := serial.LoadJSONConfig(configFiles)
 	if err != nil {
 		return nil, err
 	}
 
-	config, err := core.LoadConfig(opts.
+	return core.New(config)
+}
+
+// getConfigFilePath collects config file paths from flags and confdir.
+func getConfigFilePath() cmdarg {
+	if configDir != "" {
+		confdirFiles, err := filepath.Glob(filepath.Join(configDir, "*.json"))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed to read confdir:", err)
+		} else {
+			configFiles = append(configFiles, confdirFiles...)
+		}
+	}
+
+	if len(configFiles) == 0 {
+		// Fall back to stdin if no config files are specified.
+		configFiles = append(configFiles, "stdin:")
+	}
+
+	return configFiles
+}
